@@ -1,8 +1,23 @@
-import { Mail, Phone, MapPin, CheckCircle2, ExternalLink } from 'lucide-react';
+import { useState } from 'react';
+import { Mail, Phone, MapPin, CheckCircle2, ExternalLink, Loader2, Send } from 'lucide-react';
 import { useScrollAnimation } from '../hooks/useScrollAnimation';
 
 export function Contact() {
   const [ref, isVisible] = useScrollAnimation();
+  const [activeTab, setActiveTab] = useState<'message' | 'email'>('message');
+  
+  // Web3Forms Configuration: Users can replace this placeholder with their free key from web3forms.com
+  const ACCESS_KEY: string = "0f0fe6fe-9a94-4c3f-b418-396ad52d906b"; 
+
+  // Form State
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    purpose: 'SDET Role Discussion',
+    message: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitResult, setSubmitResult] = useState<'idle' | 'success' | 'error'>('idle');
 
   const contactDetails = [
     {
@@ -34,6 +49,67 @@ export function Contact() {
       link: null
     }
   ];
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitResult('idle');
+
+    // Robust Mock submission mode if key is placeholder
+    if (ACCESS_KEY === "YOUR_ACCESS_KEY_HERE") {
+      setTimeout(() => {
+        setIsSubmitting(false);
+        setSubmitResult('success');
+        setFormData({
+          name: '',
+          email: '',
+          purpose: 'SDET Role Discussion',
+          message: ''
+        });
+      }, 1500);
+      return;
+    }
+
+    // Actual Web3Forms API submission
+    try {
+      const response = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json"
+        },
+        body: JSON.stringify({
+          access_key: ACCESS_KEY,
+          name: formData.name,
+          email: formData.email,
+          subject: `Interview/Query: ${formData.purpose} - ${formData.name}`,
+          message: formData.message
+        })
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setSubmitResult('success');
+        setFormData({
+          name: '',
+          email: '',
+          purpose: 'SDET Role Discussion',
+          message: ''
+        });
+      } else {
+        setSubmitResult('error');
+      }
+    } catch (error) {
+      setSubmitResult('error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <section 
@@ -68,7 +144,7 @@ export function Contact() {
           </p>
         </div>
 
-        <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
           
           {/* Details Sidebar */}
           <div className={`lg:col-span-5 space-y-4 transition-all duration-700 delay-100 transform ${
@@ -106,30 +182,186 @@ export function Contact() {
             ))}
           </div>
 
-          {/* Core mailto CTA Box */}
+          {/* Interactive Form Panel */}
           <div className={`lg:col-span-7 transition-all duration-700 delay-200 transform ${
             isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}>
-            <div className="p-8 sm:p-10 rounded-3xl bg-slate-50 dark:bg-primary-light/5 border border-slate-200 dark:border-slate-800 shadow-md text-center">
-              <h3 className="font-display font-bold text-2xl text-slate-900 dark:text-white mb-4">
-                Start a Conversation
-              </h3>
-              <p className="text-slate-600 dark:text-slate-350 text-sm sm:text-base leading-relaxed mb-8">
-                Click the link below to drop a line directly into my email box! I typically respond within 24 hours.
-              </p>
+            <div className="rounded-3xl bg-slate-50 dark:bg-primary-light/5 border border-slate-200 dark:border-slate-800 shadow-md overflow-hidden">
               
-              <a
-                href="mailto:ajithbabuofficial@gmail.com"
-                className="inline-flex items-center justify-center space-x-3 px-8 py-5 rounded-2xl font-bold bg-gradient-to-r from-accent-cyan to-accent-teal text-primary-deep shadow-lg hover:shadow-cyan-500/20 hover:scale-105 transition-all text-base sm:text-lg w-full sm:w-auto"
-              >
-                <Mail size={22} />
-                <span>Send Me an Email</span>
-              </a>
-              
-              <div className="mt-8 flex items-center justify-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
-                <CheckCircle2 size={14} className="text-accent-teal" />
-                <span>Secure direct contact · No spam</span>
+              {/* Tab Selector */}
+              <div className="flex border-b border-slate-200 dark:border-slate-800">
+                <button
+                  onClick={() => setActiveTab('message')}
+                  className={`flex-1 py-4 text-center text-sm font-semibold transition-all ${
+                    activeTab === 'message'
+                      ? 'text-accent-cyan border-b-2 border-accent-cyan bg-slate-100/50 dark:bg-slate-900/30'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-350'
+                  }`}
+                >
+                  Direct Message Form
+                </button>
+                <button
+                  onClick={() => setActiveTab('email')}
+                  className={`flex-1 py-4 text-center text-sm font-semibold transition-all ${
+                    activeTab === 'email'
+                      ? 'text-accent-cyan border-b-2 border-accent-cyan bg-slate-100/50 dark:bg-slate-900/30'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-350'
+                  }`}
+                >
+                  Open Email Client
+                </button>
               </div>
+
+              {/* Tab Content: Form */}
+              {activeTab === 'message' && (
+                <div className="p-6 sm:p-8">
+                  {submitResult === 'success' ? (
+                    <div className="py-8 text-center space-y-4 animate-fade-in">
+                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-accent-teal/10 text-accent-teal border border-accent-teal/20 mb-2">
+                        <CheckCircle2 size={36} />
+                      </div>
+                      <h3 className="font-display font-bold text-xl sm:text-2xl text-slate-900 dark:text-white">
+                        Message Sent Successfully!
+                      </h3>
+                      <p className="text-slate-600 dark:text-slate-400 text-sm max-w-sm mx-auto leading-relaxed">
+                        Thank you for reaching out! Your interview/collaboration request has been delivered to my inbox. I will get back to you shortly.
+                      </p>
+                      {ACCESS_KEY === "YOUR_ACCESS_KEY_HERE" && (
+                        <div className="p-3.5 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs text-left max-w-sm mx-auto">
+                          <strong>Note:</strong> Running in <strong>Mock Mode</strong> because ACCESS_KEY is placeholder. Register a free key at <u>web3forms.com</u> to receive real emails!
+                        </div>
+                      )}
+                      <button
+                        onClick={() => setSubmitResult('idle')}
+                        className="px-6 py-2.5 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-350 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors"
+                      >
+                        Send Another Message
+                      </button>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleFormSubmit} className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* Name */}
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+                            Your Name
+                          </label>
+                          <input
+                            type="text"
+                            name="name"
+                            required
+                            value={formData.name}
+                            onChange={handleInputChange}
+                            placeholder="Alex Morgan"
+                            className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-primary-deep/50 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:border-accent-cyan focus:outline-none transition-colors text-sm"
+                          />
+                        </div>
+
+                        {/* Email */}
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+                            Your Email
+                          </label>
+                          <input
+                            type="email"
+                            name="email"
+                            required
+                            value={formData.email}
+                            onChange={handleInputChange}
+                            placeholder="alex@company.com"
+                            className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-primary-deep/50 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:border-accent-cyan focus:outline-none transition-colors text-sm"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Purpose Select */}
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+                          Purpose of Contact
+                        </label>
+                        <select
+                          name="purpose"
+                          value={formData.purpose}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-primary-deep/50 text-slate-800 dark:text-slate-100 focus:border-accent-cyan focus:outline-none transition-colors text-sm"
+                        >
+                          <option value="SDET Role Discussion" className="bg-white dark:bg-primary-dark">SDET / QA Role Discussion</option>
+                          <option value="Mock QA Interview" className="bg-white dark:bg-primary-dark">Mock QA Technical Interview</option>
+                          <option value="Project Collaboration" className="bg-white dark:bg-primary-dark">Project Collaboration</option>
+                          <option value="General Inquiry" className="bg-white dark:bg-primary-dark">General Inquiry</option>
+                        </select>
+                      </div>
+
+                      {/* Message details */}
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+                          Your Message / Interview details
+                        </label>
+                        <textarea
+                          name="message"
+                          required
+                          rows={4}
+                          value={formData.message}
+                          onChange={handleInputChange}
+                          placeholder="Please provide details about the job role, interview format, or message inquiry..."
+                          className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-primary-deep/50 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:border-accent-cyan focus:outline-none transition-colors text-sm resize-none"
+                        ></textarea>
+                      </div>
+
+                      {/* Submit */}
+                      <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="w-full flex items-center justify-center space-x-2 px-6 py-3.5 rounded-xl font-bold bg-gradient-to-r from-accent-cyan to-accent-teal text-primary-deep shadow-md hover:scale-[1.02] hover:shadow-cyan-500/10 transition-all disabled:opacity-50 disabled:scale-100 cursor-pointer"
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="animate-spin" size={18} />
+                            <span>Sending message...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Send size={16} />
+                            <span>Submit Direct Message</span>
+                          </>
+                        )}
+                      </button>
+
+                      {submitResult === 'error' && (
+                        <p className="text-xs text-red-500 font-semibold text-center mt-2">
+                          Failed to deliver message. Please try again or use the Email client tab.
+                        </p>
+                      )}
+                    </form>
+                  )}
+                </div>
+              )}
+
+              {/* Tab Content: Mailto Button */}
+              {activeTab === 'email' && (
+                <div className="p-8 sm:p-10 text-center space-y-6">
+                  <h3 className="font-display font-bold text-2xl text-slate-900 dark:text-white">
+                    Start a Conversation
+                  </h3>
+                  <p className="text-slate-600 dark:text-slate-350 text-sm sm:text-base leading-relaxed max-w-md mx-auto">
+                    Click the link below to launch your default local mail program and send a message directly to **ajithbabuofficial@gmail.com**!
+                  </p>
+                  
+                  <a
+                    href="mailto:ajithbabuofficial@gmail.com"
+                    className="inline-flex items-center justify-center space-x-3 px-8 py-4 rounded-xl font-bold bg-gradient-to-r from-accent-cyan to-accent-teal text-primary-deep shadow-lg hover:shadow-cyan-500/20 hover:scale-105 transition-all text-base w-full sm:w-auto"
+                  >
+                    <Mail size={20} />
+                    <span>Send Me an Email</span>
+                  </a>
+                  
+                  <div className="mt-8 flex items-center justify-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                    <CheckCircle2 size={14} className="text-accent-teal" />
+                    <span>Direct inbox delivery · Fast response</span>
+                  </div>
+                </div>
+              )}
+
             </div>
           </div>
 
